@@ -71,6 +71,7 @@ export default function HomePage() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const expiryAnnouncedRef = useRef(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Persistence: Load state from localStorage on mount
   useEffect(() => {
@@ -152,17 +153,25 @@ export default function HomePage() {
 
   useEffect(() => {
     if (mode !== "mockInterview" || timeRemaining === null || interviewExpired) {
+      // Clean up interval if interview is not active
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       return;
     }
 
-    const timer = window.setInterval(() => {
+    timerRef.current = window.setInterval(() => {
       setTimeRemaining((previous) => {
         if (previous === null) {
           return previous;
         }
 
         if (previous <= 1) {
-          window.clearInterval(timer);
+          if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           return 0;
         }
 
@@ -170,8 +179,13 @@ export default function HomePage() {
       });
     }, 1000);
 
-    return () => window.clearInterval(timer);
-  }, [mode, timeRemaining, interviewExpired]);
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [mode, interviewExpired]);
 
   useEffect(() => {
     if (mode !== "mockInterview" || timeRemaining !== 0 || expiryAnnouncedRef.current) {
