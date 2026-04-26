@@ -336,56 +336,57 @@ export default function HomePage() {
 
   const chatView = (
     <section className="flex flex-1 flex-col overflow-hidden bg-transparent">
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-8 scroll-smooth sm:px-6"
-      >
-        <div className="mx-auto max-w-3xl space-y-6">
-          {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              role={message.role}
-              content={message.content}
-            />
-          ))}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-8 scroll-smooth sm:px-6"
+        >
+          <div className="mx-auto max-w-3xl space-y-6">
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                role={message.role}
+                content={message.content}
+              />
+            ))}
 
-          {isLoading ? (
-            <ChatMessage role="assistant" content="" loading />
-          ) : null}
+            {isLoading ? (
+              <ChatMessage role="assistant" content="" loading />
+            ) : null}
+
+            {/* Spacer to ensure the last message is not hidden by the sticky footer */}
+            <div className="h-8" />
+          </div>
         </div>
-      </div>
     </section>
   );
 
   return (
-    <main>
-      <div className="flex min-h-screen flex-col">
-        <div className="flex min-h-screen flex-col">
-          {messages.length > 0 ? (
-            <Header
-              onReset={handleReset}
-              disabled={isLoading}
-              timer={mode === "mockInterview" && timeRemaining !== null ? formatRemainingTime(timeRemaining) : null}
-              timerWarning={timeRemaining !== null && timeRemaining <= MOCK_INTERVIEW_WARNING_SECONDS}
-              showReset={messages.length > 0}
-            />
-          ) : null}
+    <main className="h-screen overflow-hidden">
+      <div className="flex h-full flex-col">
+        {messages.length > 0 ? (
+          <Header
+            onReset={handleReset}
+            disabled={isLoading}
+            timer={mode === "mockInterview" && timeRemaining !== null ? formatRemainingTime(timeRemaining) : null}
+            timerWarning={timeRemaining !== null && timeRemaining <= MOCK_INTERVIEW_WARNING_SECONDS}
+            showReset={messages.length > 0}
+          />
+        ) : null}
 
-          {messages.length === 0 ? emptyState : chatView}
+        {messages.length === 0 ? emptyState : chatView}
 
-          {messages.length > 0 ? (
-            <div className="sticky bottom-0 border-t border-[var(--surface-border)] bg-[var(--surface-bg)] px-4 py-4 backdrop-blur sm:px-6">
-              <div className="mx-auto max-w-2xl">
-                <ChatInput
-                  value={input}
-                  onChange={setInput}
-                  onSubmit={() => void sendMessage(input)}
-                  disabled={isLoading || interviewExpired}
-                />
-              </div>
+        {messages.length > 0 ? (
+          <div className="border-t border-[var(--surface-border)] bg-[var(--surface-bg)] px-4 py-4 backdrop-blur sm:px-6">
+            <div className="mx-auto max-w-2xl">
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSubmit={() => void sendMessage(input)}
+                disabled={isLoading || interviewExpired}
+              />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </main>
   );
