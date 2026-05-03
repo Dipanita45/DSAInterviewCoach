@@ -1,8 +1,13 @@
-> 🚀 **This project is officially participating in NSoC**
+<p align="center">
+  <a href="https://nsoc.in/">
+    <img src="NSoC.png" width="200"/>
+  </a>
+</p>
 
-<a href="https://nsoc.in/">
-  <img src="NSoC.png" width="200"/>
-</a>
+<p align="center">
+  🚀 <b>This project is officially participating in NSoC</b>
+</p>
+
 
 # DSA Interview Coach
 
