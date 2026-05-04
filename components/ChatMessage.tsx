@@ -1,51 +1,49 @@
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import Prism from "prismjs";
+import "prismjs/themes/prism-tomorrow.css";
 
-type ChatMessageProps = {
-  role: "user" | "assistant" | "system";
-  content: string;
-  loading?: boolean;
+// optional: import languages you need
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-cpp";
+import "prismjs/components/prism-python";
+
+type CodeBlockProps = {
+  code: string;
+  language?: string;
+  fileName?: string;
 };
 
-type ContentSegment =
-  | { type: "text"; value: string }
-  | { type: "code"; value: string };
-
-function parseContent(content: string): ContentSegment[] {
-  const regex = /```[\w]*\n([\s\S]*?)```/g;
-
-  const segments: ContentSegment[] = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({
-        type: "text",
-        value: content.slice(lastIndex, match.index).trim(),
-      });
-    }
-
-    segments.push({
-      type: "code",
-      value: match[1].trim(),
-    });
-
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < content.length) {
-    segments.push({
-      type: "text",
-      value: content.slice(lastIndex).trim(),
-    });
-  }
-
-  return segments.filter((s) => s.value.length > 0);
-}
-
-function CodeBlock({ code }: { code: string }) {
+export function CodeBlock({
+  code,
+  language = "javascript",
+  fileName,
+}: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const MAX_LINES = 20;
+
+  // Split lines (memoized)
+  const lines = useMemo(() => code.split("\n"), [code]);
+
+  const isLong = lines.length > MAX_LINES;
+  const visibleLines = expanded ? lines : lines.slice(0, MAX_LINES);
+
+  // Syntax highlight
+  const highlighted = useMemo(() => {
+    try {
+      const lang = Prism.languages[language] || Prism.languages.javascript;
+      return Prism.highlight(code, lang, language);
+    } catch {
+      return code;
+    }
+  }, [code, language]);
+
+  useEffect(() => {
+    Prism.highlightAll();
+  }, [highlighted]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
@@ -54,71 +52,89 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative group">
-      <pre className="overflow-x-auto rounded-2xl bg-[var(--code-bg)] px-4 py-3 text-[0.88rem] leading-6 text-[var(--code-text)]">
-        <code>{code}</code>
-      </pre>
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg">
 
-      <button
-        onClick={handleCopy}
-        className="absolute right-3 top-3 flex items-center gap-1 rounded-lg bg-black/10 px-2 py-1 text-xs opacity-0 transition group-hover:opacity-100"
-      >
-        {copied ? <Check size={14} /> : <Copy size={14} />}
-        {copied ? "Copied" : "Copy"}
-      </button>
-    </div>
-  );
-}
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0f172a]/95 px-4 py-2 text-xs border-b border-slate-700 backdrop-blur">
 
-export function ChatMessage({
-  role,
-  content,
-  loading = false,
-}: ChatMessageProps) {
-  const isUser = role === "user";
-  const isSystem = role === "system";
-  const segments = parseContent(content);
+        <div className="flex items-center gap-3">
+          {/* Language Badge */}
+          <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-300">
+            {language}
+          </span>
 
-  return (
-    <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={[
-          "rounded-[22px] px-4 py-3 transition-all shadow-sm",
-          isUser
-            ? "max-w-[320px] bg-[var(--color-primary)] text-white rounded-br-md"
-            : isSystem
-              ? "max-w-[80%] border border-amber-200 bg-amber-50 text-amber-900 rounded-bl-md"
-              : "max-w-[80%] bg-white/90 text-slate-900 rounded-bl-md",
-        ].join(" ")}
-      >
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] opacity-60">
-          {isUser ? "You" : isSystem ? "System" : "Coach"}
-        </p>
+          {/* File Name */}
+          {fileName && (
+            <span className="text-slate-400 text-[11px] truncate max-w-[150px]">
+              {fileName}
+            </span>
+          )}
+        </div>
 
-        {loading ? (
-          <div className="flex items-center gap-2 text-[0.95rem]">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-current" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.2s]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-current [animation-delay:-0.4s]" />
-            <span className="ml-2 opacity-70">Thinking...</span>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {segments.map((segment, idx) =>
-              segment.type === "code" ? (
-                <CodeBlock key={idx} code={segment.value} />
-              ) : (
-                <p
-                  key={idx}
-                  className="whitespace-pre-wrap text-[0.95rem] leading-7"
-                >
-                  {segment.value}
-                </p>
-              )
-            )}
-          </div>
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-slate-300 hover:bg-white/10 transition"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span className="hidden sm:inline">
+              {copied ? "Copied" : "Copy"}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Code */}
+      <div className="relative">
+        <pre className="overflow-x-auto p-4 text-sm leading-6 text-slate-200">
+          <code className={`language-${language} font-mono`}>
+            {visibleLines.map((line, i) => (
+              <div
+                key={i}
+                className="group/line flex gap-4 px-2 rounded-md hover:bg-white/5"
+              >
+                {/* Line Number */}
+                <span className="select-none text-slate-500 w-10 text-right">
+                  {i + 1}
+                </span>
+
+                {/* Code Line */}
+                <span
+                  className="flex-1 whitespace-pre"
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      Prism.highlight(
+                        line || " ",
+                        Prism.languages[language] ||
+                          Prism.languages.javascript,
+                        language
+                      ) || line,
+                  }}
+                />
+              </div>
+            ))}
+          </code>
+        </pre>
+
+        {/* Fade effect when collapsed */}
+        {isLong && !expanded && (
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f172a] to-transparent" />
         )}
       </div>
+
+      {/* Expand / Collapse */}
+      {isLong && (
+        <div className="flex justify-center border-t border-slate-700 bg-[#0f172a]">
+          <button
+            onClick={() => setExpanded((prev) => !prev)}
+            className="flex items-center gap-1 px-4 py-2 text-xs text-slate-400 hover:text-white transition"
+          >
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {expanded ? "Show Less" : `Show All (${lines.length} lines)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
